@@ -13,6 +13,20 @@ ok() { printf '[OK] %s\n' "$1"; }
 warn() { printf '[WARN] %s\n' "$1"; warnings=$((warnings+1)); }
 fail() { printf '[FAIL] %s\n' "$1"; failures=$((failures+1)); }
 
+TMP_DIR="${TMPDIR:-/tmp}"
+TMP_PREFIX="$TMP_DIR/qtmos_${UID}_$$"
+PYVER_TXT="${TMP_PREFIX}_pyver.txt"
+PYVER_ERR="${TMP_PREFIX}_pyver.err"
+IMPORTS_TXT="${TMP_PREFIX}_imports.txt"
+IMPORTS_ERR="${TMP_PREFIX}_imports.err"
+HEALTH_JSON="${TMP_PREFIX}_health.json"
+HEALTH_ERR="${TMP_PREFIX}_health.err"
+ASK_JSON="${TMP_PREFIX}_ask.json"
+ASK_ERR="${TMP_PREFIX}_ask.err"
+SERVICE_TXT="${TMP_PREFIX}_service.txt"
+SERVICE_ERR="${TMP_PREFIX}_service.err"
+trap 'rm -f "$PYVER_TXT" "$PYVER_ERR" "$IMPORTS_TXT" "$IMPORTS_ERR" "$HEALTH_JSON" "$HEALTH_ERR" "$ASK_JSON" "$ASK_ERR" "$SERVICE_TXT" "$SERVICE_ERR"' EXIT
+
 if [[ ! -x "$PY" ]]; then
   if command -v python3 >/dev/null 2>&1; then
     PY="$(command -v python3)"
@@ -30,20 +44,20 @@ printf 'Python: %s\n' "$PY"
 printf 'API: %s\n\n' "$API_URL"
 
 # 1) Python version >= 3.10
-if "$PY" - <<'PY' >/tmp/qtmos_pyver.txt 2>/tmp/qtmos_pyver.err
+if "$PY" - <<'PY' >"$PYVER_TXT" 2>"$PYVER_ERR"
 import sys
 v = sys.version_info
 print(f"{v.major}.{v.minor}.{v.micro}")
 raise SystemExit(0 if (v.major, v.minor) >= (3, 10) else 1)
 PY
 then
-  ok "Python version >= 3.10 ($(cat /tmp/qtmos_pyver.txt))"
+  ok "Python version >= 3.10 ($(cat "$PYVER_TXT"))"
 else
   fail "Python version is below 3.10 or unreadable"
 fi
 
 # 2) Required imports
-if "$PY" - <<'PY' >/tmp/qtmos_imports.txt 2>/tmp/qtmos_imports.err
+if "$PY" - <<'PY' >"$IMPORTS_TXT" 2>"$IMPORTS_ERR"
 import importlib.util
 mods = ["fastapi", "uvicorn", "requests", "dotenv"]
 missing = [m for m in mods if importlib.util.find_spec(m) is None]
@@ -55,12 +69,12 @@ PY
 then
   ok "Required imports present (fastapi, uvicorn, requests, dotenv)"
 else
-  miss="$(cat /tmp/qtmos_imports.txt 2>/dev/null || true)"
+  miss="$(cat "$IMPORTS_TXT" 2>/dev/null || true)"
   fail "Missing imports: ${miss:-unknown}"
 fi
 
 # 3) API live check (/health)
-if "$PY" - <<PY >/tmp/qtmos_health.json 2>/tmp/qtmos_health.err
+if "$PY" - <<PY >"$HEALTH_JSON" 2>"$HEALTH_ERR"
 import json, urllib.request
 url = "${API_BASE}/health"
 obj = json.loads(urllib.request.urlopen(url, timeout=10).read().decode())
@@ -72,7 +86,7 @@ then
   token_present="$($PY - <<'PY' 2>/dev/null
 import json
 from pathlib import Path
-p = Path('/tmp/qtmos_health.json')
+p = Path(r'''$HEALTH_JSON''')
 obj = json.loads(p.read_text())
 print('1' if obj.get('token_present') else '0')
 PY
@@ -83,7 +97,7 @@ else
 fi
 
 # 4) Basic inference (/ask) - non-fatal on missing cloud token/backend
-if "$PY" - <<PY >/tmp/qtmos_ask.json 2>/tmp/qtmos_ask.err
+if "$PY" - <<PY >"$ASK_JSON" 2>"$ASK_ERR"
 import json, urllib.request
 url = "${API_BASE}/ask"
 payload = {
@@ -113,11 +127,11 @@ fi
 
 # 5) Service status (if systemd user is available)
 if command -v systemctl >/dev/null 2>&1; then
-  if systemctl --user is-active qtmos-api.service >/tmp/qtmos_service.txt 2>/tmp/qtmos_service.err; then
-    st="$(cat /tmp/qtmos_service.txt 2>/dev/null || echo active)"
+  if systemctl --user is-active qtmos-api.service >"$SERVICE_TXT" 2>"$SERVICE_ERR"; then
+    st="$(cat "$SERVICE_TXT" 2>/dev/null || echo active)"
     ok "qtmos-api.service status: $st"
   else
-    err="$(cat /tmp/qtmos_service.err 2>/dev/null || true)"
+    err="$(cat "$SERVICE_ERR" 2>/dev/null || true)"
     if [[ -n "$err" && "$err" == *"Failed to connect to bus"* ]]; then
       warn "systemd user bus unavailable (common on some WSL configs)"
     else
