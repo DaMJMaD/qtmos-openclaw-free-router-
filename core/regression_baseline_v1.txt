@@ -1,0 +1,10 @@
+# QTMoS Regression Baseline v1 (2026-02-07)
+# Run from core/: run-script regression_baseline_v1.txt
+
+state
+whoami
+pack-list epi
+claw status --json
+claw map --json
+claw memory epi 3 --json
+scan

@@ -1,0 +1,18 @@
+[Unit]
+Description=QTMoS Local Tool API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/d/qtmos/start_qtmos_api.sh
+Restart=always
+RestartSec=3
+Environment=QTMOS_VENV_PY=/home/d/qtmos-venv/bin/python
+Environment=QTMOS_API_HOST=127.0.0.1
+Environment=QTMOS_API_PORT=8010
+Environment=PUTER_LOGIN_DISABLE_SDK=1
+Environment=PUTER_AUTO_INSTALL_SDK=1
+
+[Install]
+WantedBy=default.target

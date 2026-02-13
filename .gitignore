@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+
+# Secrets
+.env
+.env.local
+llm/.env
+
+# Runtime/logs
+runtime/logs/
+dist/
+
+# Local state
+*.sqlite
+*.db
+
+node_modules/
+runtime/bridge/
+dist/
+llm/.env
+**/MetaDB/
