@@ -23,7 +23,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.cognitive_system import CognitiveSystem  # noqa: E402
-from llm.llm_adapters import call_puter_with_model, list_puter_models, query_ollama  # noqa: E402
+from llm.llm_adapters import (  # noqa: E402
+    call_puter_with_model,
+    has_puter_auth,
+    list_puter_models,
+    query_ollama,
+)
 
 APP_NAME = "qtmos-tool-api"
 APP_VERSION = "1.0.0"
@@ -240,6 +245,21 @@ def ask(req: AskRequest) -> dict[str, Any]:
         }
 
     # Default path: Puter first.
+    # If we don't have Puter auth configured, don't try to bootstrap interactive login.
+    # Go straight to local fallback when allowed.
+    if req.allow_local_fallback and not has_puter_auth():
+        local_model = fallback_model
+        local_reply = query_ollama(req.prompt, model=local_model)
+        if local_reply:
+            return {
+                "ok": True,
+                "provider": "ollama",
+                "model": local_model,
+                "prompt": req.prompt,
+                "reply": _normalize_model_reply(local_reply),
+                "fallback_used": True,
+            }
+
     reply, used_model = call_puter_with_model(req.prompt, model=req.model)
     if reply:
         return {

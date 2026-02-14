@@ -2,7 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-LINK="$HOME/qtmos"
+# Where the systemd unit will point ExecStart.
+# Don't assume ~/qtmos is free; many users already have a real directory there.
+LINK="${QTMOS_LINK:-$HOME/qtmos}"
 UNIT_DIR="$HOME/.config/systemd/user"
 UNIT_FILE="$UNIT_DIR/qtmos-api.service"
 VENV_PY="${QTMOS_VENV_PY:-$HOME/qtmos-venv/bin/python}"
@@ -10,6 +12,13 @@ HOST="${QTMOS_API_HOST:-127.0.0.1}"
 PORT="${QTMOS_API_PORT:-8010}"
 
 mkdir -p "$UNIT_DIR"
+
+if [ -e "$LINK" ] && [ ! -L "$LINK" ]; then
+  ALT="$HOME/qtmos-router"
+  echo "[qtmos-api] NOTE: $LINK exists and is not a symlink; using $ALT instead."
+  LINK="$ALT"
+fi
+
 ln -sfn "$ROOT" "$LINK"
 
 cat > "$UNIT_FILE" <<UNIT

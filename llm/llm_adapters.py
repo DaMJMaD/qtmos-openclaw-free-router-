@@ -139,6 +139,9 @@ PUTER_MODELS_URL = os.getenv("PUTER_MODELS_URL", "https://api.puter.com/puterai/
 PUTER_NODE_BRIDGE = Path(__file__).resolve().with_name("puter_node_bridge.cjs")
 PUTER_SDK_CHECK_ARG = "@heyputer/puter.js/src/init.cjs"
 PUTER_AUTO_INSTALL_SDK = os.getenv("PUTER_AUTO_INSTALL_SDK", "1") == "1"
+# If the Puter SDK can't authenticate, it may try to open an interactive login flow.
+# Default to disabling that behavior so server/headless usage doesn't pop auth windows.
+PUTER_LOGIN_DISABLE_SDK = os.getenv("PUTER_LOGIN_DISABLE_SDK", "1") == "1"
 PUTER_AUTH_RETRY_ERRORS = {
     "MISSING_AUTH_TOKEN",
     "INVALID_TOKEN_PLACEHOLDER",
@@ -319,6 +322,9 @@ def _is_bridge_auth_failure(payload):
 
 
 def _bootstrap_puter_token(force: bool = False):
+    # Never trigger interactive login in headless/server mode.
+    if PUTER_LOGIN_DISABLE_SDK:
+        return None
     if PUTER_KEY:
         return None
     if not PUTER_NODE_BRIDGE.exists():
