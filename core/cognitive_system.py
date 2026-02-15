@@ -188,7 +188,7 @@ class CognitiveSystem:
         if not chat_ollama:
             print("[OLLAMA]: Adapter unavailable.")
             return
-        model = OLLAMA_MODELS.get("default", "llama3.1:latest")
+        model = OLLAMA_MODELS.get("default", "llama3.3:70b")
         reply = chat_ollama([{"role": "user", "content": text}], model=model)
         print(f"[OLLAMA:{model}]: {reply}")
 

@@ -83,7 +83,7 @@ OLLAMA_BASE = "http://127.0.0.1:11434"
 
 # Default model name; can be overridden by callers.
 # Use llama3:latest as safer default across fresh installs.
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3:latest")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.3:70b")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "20"))
 
 # Minimal compatibility surface expected by core.cognitive_system
